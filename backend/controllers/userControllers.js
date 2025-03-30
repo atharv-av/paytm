@@ -164,7 +164,7 @@ const getAllUsers = async (req, res) => {
   try {
     const users = await User.find();
     if (filter) {
-      const filteredUsers = user.filter((user) => {
+      const filteredUsers = users.filter((user) => {
         return (
           user.firstName.toLowerCase().includes(filter.toLowerCase()) ||
           user.lastName.toLowerCase().includes(filter.toLowerCase())
@@ -179,14 +179,22 @@ const getAllUsers = async (req, res) => {
       return res.status(200).json({
         success: true,
         message: "Users fetched successfully",
-        data: filteredUsers,
+        data: filteredUsers.map((user) => ({
+          firstName: user.firstName,
+          lastName: user.lastName,
+          username: user.username,
+        })),
       });
     }
 
     return res.status(200).json({
       success: true,
       message: "Users fetched successfully",
-      data: users,
+      data: users.map((user) => ({
+        firstName: user.firstName,
+        lastName: user.lastName,
+        username: user.username,
+      })),
     });
   } catch (error) {
     console.error(error);

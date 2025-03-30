@@ -1,4 +1,3 @@
-const mongoose = require("mongoose");
 const Account = require("../models/account");
 
 const getBalance = async (req, res) => {
