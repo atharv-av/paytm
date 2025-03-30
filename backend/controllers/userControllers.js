@@ -115,7 +115,84 @@ const loginUser = async (req, res) => {
   }
 };
 
+const updateUser = async (req, res) => {
+  const { firstName, lastName, username, password } = req.body;
+  const { id } = req.params;
+  const { success } = userSchema.safeParse(req.body);
+  if (!success) {
+    return res.status(411).json({
+      message: "Incorrect inputs",
+    });
+  }
+
+  try {
+    const user = await User.findById(id);
+
+    if (!user) {
+      return res.status(400).json({
+        message: "User not found",
+      });
+    }
+
+    const newUserData = {
+      firstName,
+      lastName,
+      username,
+    };
+    if (password) {
+      const hashedPassword = await bcrypt.hash(password, 10);
+      newUserData.password = hashedPassword;
+    }
+
+    await User.updateOne({ _id: id }, newUserData);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      message: "Internal server error",
+    });
+  }
+};
+
+const getAllUsers = async (req, res) => {
+  const { filter } = req.query;
+  try {
+    const users = await User.find();
+    if (filter) {
+      const filteredUsers = user.filter((user) => {
+        return (
+          user.firstName.toLowerCase().includes(filter.toLowerCase()) ||
+          user.lastName.toLowerCase().includes(filter.toLowerCase())
+        );
+      });
+
+      if (filteredUsers.length === 0) {
+        return res.status(404).json({
+          message: "No users found",
+        });
+      }
+      return res.status(200).json({
+        success: true,
+        message: "Users fetched successfully",
+        data: filteredUsers,
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Users fetched successfully",
+      data: users,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      message: "Internal server error",
+    });
+  }
+};
+
 module.exports = {
   registerUser,
   loginUser,
+  updateUser,
+  getAllUsers,
 };
