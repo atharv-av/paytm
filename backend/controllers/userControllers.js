@@ -1,0 +1,121 @@
+const zod = require("zod");
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
+const { User } = require("../models/user");
+
+const userSchema = zod.object({
+  firstName: zod.string().min(1).max(50),
+  lastName: zod.string().min(1).max(50),
+  username: zod.string().min(3).max(50),
+  password: zod.string().min(6),
+});
+
+const registerUser = async (req, res) => {
+  const { firstName, lastName, username, password } = req.body;
+
+  const { success } = userSchema.safeParse(req.body);
+  if (!success) {
+    return res.status(411).json({
+      message: "Username already taken / Incorrect inputs",
+    });
+  }
+
+  try {
+    const existingUser = await User.findOne({ username });
+    if (existingUser) {
+      return res.status(400).json({
+        success: false,
+        message: "User already exists",
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const newUser = new User({
+      firstName,
+      lastName,
+      username,
+      password: hashedPassword,
+    });
+    await newUser.save();
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+      expiresIn: "1d",
+    });
+    return res.status(201).json({
+      success: true,
+      message: "User registered successfully",
+      data: {
+        id: newUser._id,
+        firstName: newUser.firstName,
+        lastName: newUser.lastName,
+        username: newUser.username,
+      },
+      token,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
+const loginUser = async (req, res) => {
+  const { username, password } = req.body;
+  const { success } = userSchema.safeParse(req.body);
+
+  if (!success) {
+    return res.status(411).json({
+      message: "Incorrect username or password",
+    });
+  }
+
+  if (!username || !password) {
+    return res.status(400).json({
+      message: "Username and password are required",
+    });
+  }
+
+  try {
+    const user = await User.findOne({ username });
+    if (!user) {
+      return res.status(400).json({
+        message: "User not found",
+      });
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+
+    if (!isPasswordValid) {
+      return res.status(400).json({
+        message: "Invalid username or password",
+      });
+    }
+
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+      expiresIn: "1d",
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "User logged in successfully",
+      data: {
+        id: user._id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        username: user.username,
+      },
+      token,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      message: "Internal server error",
+    });
+  }
+};
+
+module.exports = {
+  registerUser,
+  loginUser,
+};
