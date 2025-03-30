@@ -5,7 +5,7 @@ const userRouter = express.Router();
 
 userRouter.post("/register", registerUser);
 userRouter.post("/login", loginUser);
-userRouter.put("/user", authMiddleware, updateUser)
+userRouter.put("/", authMiddleware, updateUser)
 userRouter.get("/users", authMiddleware, getAllUsers)
 
 module.exports = userRouter;

@@ -6,7 +6,7 @@ const {
 } = require("../controllers/accountControllers");
 const accountRouter = express.Router();
 
-accountRouter.get("/account/balance", authMiddleware, getBalance);
-accountRouter.post("account/transfer", authMiddleware, transferMoney);
+accountRouter.get("/balance", authMiddleware, getBalance);
+accountRouter.post("/transfer", authMiddleware, transferMoney);
 
 module.exports = accountRouter;

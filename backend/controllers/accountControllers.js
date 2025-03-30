@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 const Account = require("../models/account");
 
 const getBalance = async (req, res) => {
-  const { id } = req.userId;
+  const id = req.userId;
 
   try {
     const account = await Account.findOne({ userId: id });
@@ -29,49 +29,50 @@ const getBalance = async (req, res) => {
 };
 
 const transferMoney = async (req, res) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
   const { toAccountId, amount } = req.body;
-  const fromAccountId = req.userId;
+  const id = req.userId;
 
-  if (!fromAccountId || !toAccountId || amount) {
+  if (!id || !toAccountId || !amount) {
     return res.status(400).json({
       success: false,
       message: "Sender/Receiver Id and Amount are required",
     });
   }
 
-  if (fromAccountId === toAccountId) {
+  if (id === toAccountId) {
     return res
       .status(400)
       .json({ success: false, message: "Sender and Receiver cannot be same" });
   }
 
   try {
-    const receiver = await Account.findOne({ toAccountId }).session(session);
+    const senderAccount = await Account.findOne({ userId: id });
+    const receiverAccount = await Account.findOne({ userId: toAccountId });
 
-    if (!receiver) {
-      await session.abortTransaction();
+    if (!senderAccount || !receiverAccount) {
       return res.status(400).json({
-        message: "Invalid account",
+        success: false,
+        message: "Invalid sender or receiver account",
       });
     }
 
-    await Account.updateOne(
-      { userId: req.userId },
-      { $inc: { balance: -amount } }
-    );
-    await Account.updateOne(
-      { userId: toAccountId },
-      { $inc: { balance: amount } }
-    );
+    if (senderAccount.balance < amount) {
+      return res.status(400).json({
+        success: false,
+        message: "Insufficient balance",
+      });
+    }
 
-    await session.commitTransaction();
+    senderAccount.balance -= amount;
+    receiverAccount.balance += amount;
 
-    return res
-      .status(200)
-      .json({ success: true, message: "Amount transferred successfully" });
+    await senderAccount.save();
+    await receiverAccount.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Amount transferred successfully",
+    });
   } catch (error) {
     console.error(error);
     return res.status(500).json({

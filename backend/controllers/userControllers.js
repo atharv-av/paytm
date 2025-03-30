@@ -1,14 +1,14 @@
 const zod = require("zod");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-const { User } = require("../models/user");
-const { Account } = require("../models/account");
+const User = require("../models/user");
+const Account = require("../models/account");
 
 const userSchema = zod.object({
-  firstName: zod.string().min(1).max(50),
-  lastName: zod.string().min(1).max(50),
-  username: zod.string().min(3).max(50),
-  password: zod.string().min(6),
+  firstName: zod.string().min(1).max(50).optional(),
+  lastName: zod.string().min(1).max(50).optional(),
+  username: zod.string().min(3).max(50).optional(),
+  password: zod.string().min(6).optional(),
 });
 
 const registerUser = async (req, res) => {
@@ -17,7 +17,7 @@ const registerUser = async (req, res) => {
   const { success } = userSchema.safeParse(req.body);
   if (!success) {
     return res.status(411).json({
-      message: "Username already taken / Incorrect inputs",
+      message: "Some required fields are either missing or invalid",
     });
   }
 
@@ -70,13 +70,6 @@ const registerUser = async (req, res) => {
 
 const loginUser = async (req, res) => {
   const { username, password } = req.body;
-  const { success } = userSchema.safeParse(req.body);
-
-  if (!success) {
-    return res.status(411).json({
-      message: "Incorrect username or password",
-    });
-  }
 
   if (!username || !password) {
     return res.status(400).json({
@@ -125,7 +118,7 @@ const loginUser = async (req, res) => {
 
 const updateUser = async (req, res) => {
   const { firstName, lastName, username, password } = req.body;
-  const { id } = req.userId;
+  const id = req.userId; // Ensure this is correctly set by the middleware
   const { success } = userSchema.safeParse(req.body);
   if (!success) {
     return res.status(411).json({
@@ -137,8 +130,8 @@ const updateUser = async (req, res) => {
     const user = await User.findById(id);
 
     if (!user) {
-      return res.status(400).json({
-        message: "User not found",
+      return res.status(404).json({
+        message: "User not found", // Use 404 for not found
       });
     }
 
@@ -153,6 +146,11 @@ const updateUser = async (req, res) => {
     }
 
     await User.updateOne({ _id: id }, newUserData);
+
+    return res.status(200).json({
+      success: true,
+      message: "User updated successfully",
+    });
   } catch (error) {
     console.error(error);
     return res.status(500).json({

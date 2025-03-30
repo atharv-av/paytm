@@ -6,14 +6,14 @@ const authMiddleware = (req, res, next) => {
     return res.status(403).json({ message: "Unauthorized" });
   }
 
-  const token = authHeader.split("")[1];
+  const token = authHeader.split(" ")[1];
   if (!token) {
     return res.status(403).json({ message: "Unauthorized" });
   }
 
   try {
     const decodedJwt = jwt.verify(token, process.env.JWT_SECRET);
-    req.userId = decodedJwt.userId;
+    req.userId = decodedJwt.id;
     next();
   } catch (error) {
     return res.status(403).json({ message: "Unauthorized" });
