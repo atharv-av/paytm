@@ -117,7 +117,7 @@ const loginUser = async (req, res) => {
 
 const updateUser = async (req, res) => {
   const { firstName, lastName, username, password } = req.body;
-  const { id } = req.params;
+  const { id } = req.userId;
   const { success } = userSchema.safeParse(req.body);
   if (!success) {
     return res.status(411).json({
