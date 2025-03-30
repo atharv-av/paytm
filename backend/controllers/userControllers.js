@@ -2,6 +2,7 @@ const zod = require("zod");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const { User } = require("../models/user");
+const { Account } = require("../models/account");
 
 const userSchema = zod.object({
   firstName: zod.string().min(1).max(50),
@@ -37,9 +38,16 @@ const registerUser = async (req, res) => {
       password: hashedPassword,
     });
     await newUser.save();
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+    const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET, {
       expiresIn: "1d",
     });
+
+    const account = new Account({
+      userId: newUser._id,
+      balance: 1 + Math.floor(Math.random() * 1000),
+    });
+    await account.save();
+
     return res.status(201).json({
       success: true,
       message: "User registered successfully",
